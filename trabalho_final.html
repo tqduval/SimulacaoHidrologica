@@ -1,0 +1,1499 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.4.550">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Tomás Antonio | 242114243">
+
+<title>Trabalho Final – Simulação Hidrológica</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+  margin-bottom: 0em;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
+
+
+<script src="trabalho_final_files/libs/clipboard/clipboard.min.js"></script>
+<script src="trabalho_final_files/libs/quarto-html/quarto.js"></script>
+<script src="trabalho_final_files/libs/quarto-html/popper.min.js"></script>
+<script src="trabalho_final_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="trabalho_final_files/libs/quarto-html/anchor.min.js"></script>
+<link href="trabalho_final_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="trabalho_final_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
+<link href="trabalho_final_files/libs/quarto-html/quarto-syntax-highlighting-dark.css" rel="prefetch" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
+<script src="trabalho_final_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="trabalho_final_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="trabalho_final_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="trabalho_final_files/libs/bootstrap/bootstrap-dark.min.css" rel="prefetch" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN") {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+</head>
+
+<body>
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#premissa-do-trabalho" id="toc-premissa-do-trabalho" class="nav-link active" data-scroll-target="#premissa-do-trabalho">Premissa do trabalho</a>
+  <ul class="collapse">
+  <li><a href="#área-de-estudo" id="toc-área-de-estudo" class="nav-link" data-scroll-target="#área-de-estudo">Área de estudo</a></li>
+  </ul></li>
+  <li><a href="#aplicação" id="toc-aplicação" class="nav-link" data-scroll-target="#aplicação">Aplicação</a>
+  <ul class="collapse">
+  <li><a href="#modelos-hidrológicos" id="toc-modelos-hidrológicos" class="nav-link" data-scroll-target="#modelos-hidrológicos">Modelos hidrológicos</a></li>
+  <li><a href="#clibração" id="toc-clibração" class="nav-link" data-scroll-target="#clibração">Clibração</a></li>
+  <li><a href="#estrutura-da-função-fun_run_hydromod" id="toc-estrutura-da-função-fun_run_hydromod" class="nav-link" data-scroll-target="#estrutura-da-função-fun_run_hydromod">Estrutura da função <code>fun_run_hydromod</code></a></li>
+  </ul></li>
+  <li><a href="#rodando-o-modelo" id="toc-rodando-o-modelo" class="nav-link" data-scroll-target="#rodando-o-modelo">Rodando o modelo</a>
+  <ul class="collapse">
+  <li><a href="#dados-de-entrada" id="toc-dados-de-entrada" class="nav-link" data-scroll-target="#dados-de-entrada">Dados de entrada</a></li>
+  <li><a href="#séries-simuladas" id="toc-séries-simuladas" class="nav-link" data-scroll-target="#séries-simuladas">Séries simuladas</a></li>
+  <li><a href="#análise-de-sensibilidade" id="toc-análise-de-sensibilidade" class="nav-link" data-scroll-target="#análise-de-sensibilidade">Análise de sensibilidade</a></li>
+  <li><a href="#avaliação-dos-erros" id="toc-avaliação-dos-erros" class="nav-link" data-scroll-target="#avaliação-dos-erros">Avaliação dos erros</a></li>
+  <li><a href="#quantis" id="toc-quantis" class="nav-link" data-scroll-target="#quantis">Quantis</a></li>
+  </ul></li>
+  <li><a href="#referências" id="toc-referências" class="nav-link" data-scroll-target="#referências">Referências</a></li>
+  </ul>
+</nav>
+</div>
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Trabalho Final – Simulação Hidrológica</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Tomás Antonio | 242114243 </p>
+          </div>
+  </div>
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="premissa-do-trabalho" class="level1">
+<h1>Premissa do trabalho</h1>
+<p>Este trabalho consiste na aplicação e calibração dos modelos hidrológicos Hymod e SMAP para simulação de uma bacia hidrográfica escolhida na base de dados CABra <span class="citation" data-cites="almagro_cabra_2023">(<a href="#ref-almagro_cabra_2023" role="doc-biblioref">Almagro et al. 2023</a>)</span>. Os objetivos envolvem a construção de uma função “modular” que permite escolher entre modelos, funções objetivos e calibradores diferentes. Serão aplicados dois calibradores conhecidos: o algoritmo de Nelder-Mead, de busca local, através da função nativa do R <code>optim</code>; e o algoritmo de busca global <em>Shuffle Complex Estimation</em> (SCE), através da função <code>SCEOptim</code> do pacote <code>SoilHyP</code>. A partir desta calibração, serão realizados: análise de sensibilidade dos parâmetros; avaliações com diferentes períodos de aquecimento, calibração e validação; verificação dos resíduos (possuem média igual a zero? são homoscedásticos?); e, finalmente, a estimação de quantis empíricos (observados) e simulados.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Definições prévias</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">rm</span>(<span class="at">list =</span> <span class="fu">ls</span>()); <span class="fu">gc</span>() <span class="co"># limpar ambiente</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">9</span>)           <span class="co"># definir seed</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Pacotes</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>pacman<span class="sc">::</span><span class="fu">p_load</span>(lubridate, tidyverse, ggplot2, SoilHyP, beepr, patchwork, sf, stars, knitr)</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Importar funções</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="fu">source</span>(<span class="st">"fun_run_hydromod.R"</span>) <span class="co"># função que roda o modelo completo</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Argumentos iniciais</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>path <span class="ot">&lt;-</span> <span class="st">"Base de Dados"</span> <span class="co"># diretório c/ arquivos `climate` e `streamflow`</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>catchment_code <span class="ot">&lt;-</span> <span class="dv">697</span>   <span class="co"># código da bacia hidrográfica da base CABra</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<section id="área-de-estudo" class="level2">
+<h2 class="anchored" data-anchor-id="área-de-estudo">Área de estudo</h2>
+<p>A bacia hidrográfica escolhida é a de número 697, localizada no Distrito Federal, referente à drenagem do Ribeirão do Torto, com área igual a 233.39 km².</p>
+<div class="cell" data-layout-align="center">
+<div class="cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="trabalho_final_files/figure-html/unnamed-chunk-3-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+</section>
+<section id="aplicação" class="level1">
+<h1>Aplicação</h1>
+<section id="modelos-hidrológicos" class="level2">
+<h2 class="anchored" data-anchor-id="modelos-hidrológicos">Modelos hidrológicos</h2>
+<p>O modelo <strong>SMAP</strong> (<em>Soil Moisture Accounting Procedure</em>) é um modelo concentrado que, de maneira geral, possui três reservatórios: um reservatório do solo, um reservatório superficial e um reservatório subterrâneo. O escoamento superficial modelado pelo método SCS (do <em>Soil Conservation Service</em>, atual <em>Natural Resources Conservation Service</em>). O funcionamento do SMAP se dá da seguinte maneira: para determinada lâmina precipitada, parte se torna escoamento superficial, parte evapora e parte abastece o reservatório do solo. A cada iteração, o volume nesses reservatórios é atualizado e a vazão (que soma os escoamentos base e direto) é calculada no “exutório”. O fluxo em cada reservatório é dado por uma relação linear.</p>
+<p>São <strong>parâmetros</strong> do modelo SMAP:</p>
+<ol type="1">
+<li><code>str</code>: capacidade total do reservatório do solo;</li>
+<li><code>k2t</code>: coeficiente do escoamento direto;</li>
+<li><code>ai</code>: abstração inicial (retenção de água no solo sem que haja escoamento);</li>
+<li><code>crec</code>: coeficiente de recarga do reservatório subterrâneo;</li>
+<li><code>capc</code>: define o nível a partir do qual haverá percolação (recarga);</li>
+<li><code>kkt</code>: coeficiente do escoamento de base;</li>
+<li><code>tuin</code>: teor de umidade inicial (condição inicial);</li>
+<li><code>ebin</code>: escoamento de base inicial (condição inicial);</li>
+</ol>
+<p>O modelo <strong>Hymod</strong> também é um modelo concentrado, porém com algumas características probabilísticas que buscam simular um comportamento distribuído no espaço. O modelo busca representar a distribuição espacial da capacidade de armazenamento (<span class="math inline">\(C\)</span>), como se diferentes partes possuíssem diferentes “estados” de armazenamento ao longo do tempo. Cada ponto dentro da bacia teria uma capacidade e uma probabilidade de estar saturado. Essa probabilidade é dada por:</p>
+<p><span class="math display">\[
+P(C \leq c(t)) = \int_0^{c(t)} f(c)dc = F_c(c(t)),
+\]</span> em que</p>
+<p><span class="math display">\[
+\begin{gather}
+f(c) = \frac{B}{C_{max}}\Bigg(1 - \frac{C}{C_{max}} \Bigg)^{B - 1}, \\
+F(c) = 1 - \Bigg(1 - \frac{C}{C_{max}} \Bigg)^{B}.
+\end{gather}
+\]</span></p>
+<p>São <strong>parâmetros</strong> do Hymod:</p>
+<ol type="1">
+<li><code>Cmax</code>: capacidade máxima de armazenamento;</li>
+<li><code>B</code>: grau de variabilidade espacial da capcidade de armazenamento de água no solo;</li>
+<li><code>Alpha</code>: fator de distribuição do fluxo entre reservatórios lento e rápido;</li>
+<li><code>FractionLeavesSlowTank</code>: fração do reservatório tempo que esvazia a cada passo de tempo;</li>
+<li><code>FractionLeavesQuickTank</code>: fração do reservatório rápido que esvazia a cada passo de tempo.</li>
+</ol>
+</section>
+<section id="clibração" class="level2">
+<h2 class="anchored" data-anchor-id="clibração">Clibração</h2>
+<p>Duas funções objetivo serão empregadas neste exercício: o coeficiente de eficiência de Nash-Sutcliffe (KGE), dado por:</p>
+<p><span class="math display">\[NSE = 1 - \frac{\sum(Q_{obs \ i} - Q_{sim \ i})^2}{\sum(Q_{obs \ i} - \bar Q_{obs})^2},\]</span></p>
+<p>que pode ser intrerpretado como uma comparação entre dois modelos (um no denominador e outro no numerador), avaliados pelo erro quadrático médio; e o coeficiente de eficiência de Kling-Gupta (KGE), dado por:</p>
+<p><span class="math display">\[KGE = 1 - \sqrt{(\bar Q_{sim}/\bar Q_{obs} - 1)^2 + (S_{sim}/S_{obs} - 1)^2 + (\hat\rho(Q_{sim}, Q_{obs}) - 1)^2},\]</span> que, no fundo, computa diferentes componentes de distância. Ambos, quanto mais próximos de 1, indicam melhor ajuste do modelo.</p>
+<p>Essas duas funções são utilizadas em um ambiente de otimização (nesse caso de maximização), respeitando restrições como limites máximos e mínimos dos parâmetros do modelo. O problema se resuma a minimizar a diferença entre a série observada e a série simulada maximizando estas duas funções objetivo.</p>
+<p>Nesse contexto, diferentes algoritmos podem ser aplicados para fazer essa otimização. Neste trabalho serão utilizados dois algoritmos. O primeiro, <strong>Nelder-Mead</strong> (NM), é um algoritmo de busca local baseado no “simplex”, que testa mudanças de posição dos parâmetros, caminhando com eles até achar a melhor solução com base em critérios de parada – não muito adequado para modelos hidrológicos, pois estes algoritmos podem se prender em pontos mínimos/máximos locais. O segundo, baseado em algoritmos evolucionários, é denominado <strong><em>Shuffle Complex Evolution</em></strong> (SCE). Seu funcionamento consiste na construção de <em>complexes</em>, conjuntos de soluções geradas aleatoriamente, que são ordenadas conforme avaliações da função objetivo. A evolução desses grupos é feita, originalmente, usando o “simplex”. Atribui-se às soluções uma probabilidade de seleção baseado em sua posição e um novo grupo é formado selecionando um número de soluções conforme essa probabilidade – processo garante que até soluções com baixo valor da função objetivo sejam selecionadas evitando que o algoritmo fique preso em um ótimo local. Finalmente, é feita a mistura das soluções e a formação de novos grupos para repetição do processo até que os critérios de parada do algoritmo sejam atendidos.</p>
+</section>
+<section id="estrutura-da-função-fun_run_hydromod" class="level2">
+<h2 class="anchored" data-anchor-id="estrutura-da-função-fun_run_hydromod">Estrutura da função <code>fun_run_hydromod</code></h2>
+<p>A função <code>fun+run_hydromod</code> foi desenvolvida como uma função modular que permite que o usuário possa escolher, principalmente, entre funções objetivo NSE ou KGE com <code>which_obj</code>, modelos hidrológicos SMAP ou Hymod com <code>which_model</code> e calibradores com <code>which_cal</code>. Adicionalmente, a plataforma CABra também dispõem de diferentes tipos de evapotranspiração, de modo que também é possível a escolha com o argumento <code>which_et</code>. Outros argumentos também são apresentados abaixo:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Parâmetros</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="do">## path: 'character' caminho do diretório c/ arquivos: </span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="do">### CABra_&lt;catchment_code&gt;_streamflow.txt e CABra_&lt;catchment_code&gt;_climate.txt</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="do">## catchment_code: 'int' código da bacia hidrográfica do CABra</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="do">## which_et: 'character' qual modelo (escolher 1) de evapotranspiração usar (et_ens, pet_pm, pet_pt, pet_hg)</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="do">## periods: 'vector' c/ períodos de aquecimento, calibração e validação (soma = 1)</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="do">## par: 'vector' de parâmetros do modelo hidrológico</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="do">## which_obj: 'character' c/ qual função objetivo utilizar (nse, kge)</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="do">## which_model: 'character' c/ qual modelo hidrológico utilizar (hymod, smap)</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="do">## ...: outros parâmetros:</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a><span class="do">### par_limits: tbl_df c/ colunas 'nome_par', 'min' e 'max' nessa ordem p/ SCEOptim</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>fun_run_hydromod <span class="ot">&lt;-</span> <span class="cf">function</span>(path, catchment_code, which_et,</span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>                             periods, par, <span class="at">which_obj =</span> <span class="st">"nse"</span>, <span class="at">which_model =</span> <span class="st">"hymod"</span>,</span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>                             <span class="at">which_cal =</span> <span class="st">"sce"</span>, control, ...){...}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Internamente, a função chama, com a função <code>source()</code>, outras funções em um arquivo auxiliar <code>proj_functions.R</code>.</p>
+</section>
+</section>
+<section id="rodando-o-modelo" class="level1">
+<h1>Rodando o modelo</h1>
+<section id="dados-de-entrada" class="level2">
+<h2 class="anchored" data-anchor-id="dados-de-entrada">Dados de entrada</h2>
+<p>Já definimos <code>path</code> (Base de Dados) e <code>catchment_code</code> (697) anteriormente. Vamos definir outros argumentos gerais necessários e, em seguida, os parâmetros específicos para as rodadas do modelo que faremos.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>which_et <span class="ot">&lt;-</span> <span class="st">"pet_pm"</span>            <span class="co"># modelo de evapotranspiração potencial (Penman-Monteith)</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>periods <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="fl">0.2</span>, <span class="fl">0.5</span>, <span class="fl">0.3</span>)     <span class="co"># perídos (%) de aquecimento, calibração e validação</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Parâmetros e limites</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>params <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="st">"hymod"</span> <span class="ot">=</span> <span class="fu">c</span>(<span class="st">"cmax"</span> <span class="ot">=</span> <span class="dv">300</span>, <span class="st">"b"</span> <span class="ot">=</span> <span class="fl">0.3</span>, <span class="st">"alpha"</span> <span class="ot">=</span>  <span class="fl">0.6</span>, <span class="st">"f_lento"</span> <span class="ot">=</span> <span class="fl">0.01</span>, <span class="st">"f_rap"</span> <span class="ot">=</span>  <span class="fl">0.4</span>),  </span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>               <span class="st">"smap"</span> <span class="ot">=</span> <span class="fu">c</span>(<span class="st">"str"</span> <span class="ot">=</span> <span class="dv">300</span>, <span class="st">"k2t"</span> <span class="ot">=</span> <span class="fl">0.3</span>, <span class="st">"ai"</span> <span class="ot">=</span> <span class="fl">0.1</span>, <span class="st">"crec"</span> <span class="ot">=</span> <span class="dv">5</span>, <span class="st">"capc"</span> <span class="ot">=</span> <span class="fl">0.35</span>, <span class="st">"kkt"</span> <span class="ot">=</span> <span class="fl">0.5</span>, <span class="st">"tuin"</span> <span class="ot">=</span> <span class="dv">200</span>, <span class="st">"eb"</span> <span class="ot">=</span> <span class="dv">20</span>))</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>par_limits <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="st">"hymod"</span> <span class="ot">=</span> <span class="fu">tibble</span>(<span class="at">par_name =</span> <span class="fu">c</span>(<span class="st">"cmax"</span>, <span class="st">"b"</span>, <span class="st">"alpha"</span>, <span class="st">"f_lento"</span>, <span class="st">"f_rap"</span>),</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>                                <span class="at">min =</span> <span class="fu">c</span>(<span class="dv">50</span>, <span class="fl">1e-6</span>, <span class="fl">1e-6</span>, <span class="fl">1e-6</span>, <span class="fl">1e-6</span>),</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>                                <span class="at">max =</span> <span class="fu">c</span>(<span class="dv">1000</span>, <span class="dv">2</span>, <span class="dv">1</span>, <span class="fl">0.2</span>, <span class="fl">0.9</span>)),</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>               <span class="st">"smap"</span> <span class="ot">=</span> <span class="fu">tibble</span>(<span class="at">par_name =</span> <span class="fu">c</span>(<span class="st">"str"</span>, <span class="st">"k2t"</span>, <span class="st">"ai"</span>, <span class="st">"crec"</span>, <span class="st">"capc"</span>, <span class="st">"kkt"</span>, <span class="st">"tuin"</span>, <span class="st">"ebin"</span>),</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>                               <span class="at">min =</span> <span class="fu">c</span>(<span class="dv">10</span>, <span class="fl">1e-6</span>, <span class="fl">1e-6</span>, <span class="fl">1e-6</span>, <span class="fl">1e-6</span>, <span class="fl">1e-6</span>, <span class="dv">10</span>, <span class="dv">1</span>),</span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>                               <span class="at">max =</span> <span class="fu">c</span>(<span class="dv">1000</span>, <span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">10</span>, <span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">1000</span>, <span class="dv">1000</span>)))</span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>control <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="at">maxit =</span> <span class="dv">20</span>,     <span class="co"># critérios de parada do SCE</span></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>                <span class="at">reltol =</span> <span class="fl">0.001</span>,</span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>                <span class="at">ncomplex =</span> <span class="dv">5</span>,</span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>                <span class="at">tolsteps =</span> <span class="dv">6</span>,</span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>                <span class="at">trace =</span> <span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>As rodadas mencionadas referem-se às combinações entre 1) modelo e 2) função objetivo (usaremos somente o <code>SCEOptim</code> para calibrar os modelos). Usaremos um loop-for para rodar e armazenar os resultados em uma lista.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>which_obj <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"nse"</span>, <span class="st">"kge"</span>); which_model <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"hymod"</span>, <span class="st">"smap"</span>); which_cal <span class="ot">&lt;-</span> <span class="st">"sce"</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>combinations <span class="ot">&lt;-</span> <span class="fu">as_tibble</span>(<span class="fu">expand.grid</span>(which_obj, which_model))</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>resultados <span class="ot">&lt;-</span> <span class="fu">vector</span>(<span class="at">mode =</span> <span class="st">"list"</span>, <span class="at">length =</span> <span class="dv">4</span>)</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span>(i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span><span class="fu">nrow</span>(combinations)){</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>  fo <span class="ot">&lt;-</span> combinations[[<span class="dv">1</span>]][[i]]</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>  mod <span class="ot">&lt;-</span> combinations[[<span class="dv">2</span>]][[i]]</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">message</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">Começando combinação "</span>, fo, <span class="st">" e "</span>, mod, <span class="st">"...</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>  par <span class="ot">&lt;-</span> params[[mod]]</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>  lim <span class="ot">&lt;-</span> par_limits[[mod]]</span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>  res_run <span class="ot">&lt;-</span></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>    <span class="fu">fun_run_hydromod</span>(<span class="at">path =</span> path,</span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>                     <span class="at">catchment_code =</span> catchment_code,</span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>                     <span class="at">which_et =</span> <span class="st">"pet_pm"</span>,</span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>                     <span class="at">periods =</span> periods,</span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>                     <span class="at">which_obj =</span> fo,</span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>                     <span class="at">which_model =</span> mod,</span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>                     <span class="at">which_cal =</span> which_cal,</span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>                     <span class="at">par =</span> par,</span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>                     <span class="at">par_limits =</span> lim,</span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a>                     <span class="at">control =</span> control)</span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a>  resultados[[i]] <span class="ot">&lt;-</span> res_run</span>
+<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+Começando combinação nse e hymod...</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Rodando bacia 697
+Área igual a 233.39 km²</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code> Nr Iter Nr Fun Eval Current best function Current worst function</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>     1   185    -0.742863      2.68689</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>     2   316    -0.742863      2.68689</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>     3   466    -0.754647      2.68689</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>     4   610    -0.757305      2.68689</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>     5   721    -0.760322      2.68689</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>     6   824    -0.762826      2.68689</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>     7   939    -0.763586      2.68689</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>     8  1035    -0.765565      2.68689</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>     9  1125    -0.766801    -0.595668</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>    10  1246    -0.767852    -0.595668</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>    11  1407     -0.76792    -0.595668</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>    12  1538    -0.767988    -0.595668</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>    13  1708    -0.767993    -0.595668</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>    14  1834     -0.76801    -0.595668</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>    15  1961    -0.768012    -0.595668</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Change in solution over [tolsteps] less than specified tolerance (reltol).</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+Começando combinação kge e hymod...</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Rodando bacia 697
+Área igual a 233.39 km²</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code> Nr Iter Nr Fun Eval Current best function Current worst function</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>     1   163      -0.8445     0.498878</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>     2   275    -0.847675     0.498878</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>     3   395    -0.853461     0.498878</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>     4   498    -0.853911     0.127396</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>     5   612     -0.85649     0.064395</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>     6   717     -0.85808     0.064395</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>     7   812    -0.859584     0.064395</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>     8   970    -0.860239    -0.833013</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>     9  1105    -0.860879    -0.833013</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>    10  1224    -0.861202    -0.833013</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>    11  1348    -0.861226    -0.839535</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>    12  1471    -0.861233    -0.855078</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Change in solution over [tolsteps] less than specified tolerance (reltol).</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+Começando combinação nse e smap...</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Rodando bacia 697
+Área igual a 233.39 km²</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code> Nr Iter Nr Fun Eval Current best function Current worst function</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>     1   453   -0.0509338      4597.05</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>     2   865    -0.282167      4597.05</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>     3  1267    -0.446785      4597.05</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>     4  1550    -0.449169      4597.05</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>     5  1863    -0.449746      4597.05</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>     6  2322    -0.449822      4597.05</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>     7  2699    -0.450642      4597.05</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>     8  2848    -0.452988      4597.05</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>     9  2993    -0.454129      4597.05</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>    10  3146    -0.454683      4597.05</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>    11  3278    -0.455398      4597.05</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>    12  3511    -0.457034      4597.05</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>    13  3706    -0.458342      4597.05</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>    14  3836    -0.464651      4597.05</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>    15  3950    -0.501638      4597.05</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>    16  4082    -0.557605      4597.05</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>    17  4489    -0.559521      4597.05</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>    18  4935    -0.560089      4597.05</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>    19  5179    -0.560623      4597.05</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>    20  5454    -0.560922      4597.05</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Maximum number of function evaluations or iterations reached.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+Começando combinação kge e smap...</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Rodando bacia 697
+Área igual a 233.39 km²</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code> Nr Iter Nr Fun Eval Current best function Current worst function</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>     1   460   -0.0601636      68.8581</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>     2   899    -0.525506      68.8581</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>     3  1256    -0.536061      68.8581</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>     4  1582    -0.553218      68.8581</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>     5  2033    -0.554122      68.8581</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>     6  2437    -0.557116      68.8581</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>     7  2605    -0.568618      68.8581</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>     8  2768     -0.58634      68.8581</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>     9  3161    -0.588106      68.8581</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>    10  3597    -0.588596      68.8581</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>    11  3963    -0.589185      68.8581</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>    12  4256    -0.589498      68.8581</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>    13  4543    -0.589719      68.8581</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>    14  4745    -0.590444      68.8581</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>    15  4953    -0.591617      68.8581</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>    16  5118    -0.594971      68.8581</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>    17  5338    -0.595777      68.8581</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>    18  5585    -0.595829      68.8581</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>    19  5730    -0.596186      68.8581</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>    20  5885    -0.598198      68.8581</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Maximum number of function evaluations or iterations reached.</code></pre>
+</div>
+</div>
+</section>
+<section id="séries-simuladas" class="level2">
+<h2 class="anchored" data-anchor-id="séries-simuladas">Séries simuladas</h2>
+<p>Vamos avaliar as séries históricas de vazão e os resultados das simulações.</p>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-series-historicas-1" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-series-historicas-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="trabalho_final_files/figure-html/fig-series-historicas-1.png" class="img-fluid figure-img" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-series-historicas-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;1: Séries históricas completas.
+</figcaption>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div id="fig-series-historicas-2" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-series-historicas-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="trabalho_final_files/figure-html/fig-series-historicas-2.png" class="img-fluid figure-img" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-series-historicas-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;2: Séries históricas completas.
+</figcaption>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div id="fig-series-historicas-3" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-series-historicas-3-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="trabalho_final_files/figure-html/fig-series-historicas-3.png" class="img-fluid figure-img" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-series-historicas-3-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;3: Séries históricas completas.
+</figcaption>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div id="fig-series-historicas-4" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-series-historicas-4-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="trabalho_final_files/figure-html/fig-series-historicas-4.png" class="img-fluid figure-img" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-series-historicas-4-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;4: Séries históricas completas.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>Pelas séries históricas observadas, percebe-se que durante os anos de 2000 a 2006 houve um aumento nas vazões mínimas que não havia sido observado em anos anteriores (durante os anos de calibração). Essa diferença nas mínimas pode explicar a discrepância entre os coeficientes de eficiência da calibração e da validação. A primeira simulação, por exemplo, envolve o NSE e o modelo Hymod. Nessa rodada, o valor da função objetivo da calibração foi de -0.77, enquanto o da validação foi de apenas 0.26. Os resultados das demais rodadas são apresentados na tabela abaixo.</p>
+<div id="tbl-fo-values" class="cell tbl-cap-location-top anchored" data-tbl-cal="Resultados dos coeficientes de eficiência para calibração e validação.">
+<div class="sourceCode cell-code" id="cb88"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb88-1"><a href="#cb88-1" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span><span class="fu">kable</span>(fo_summary)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<table class="table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th style="text-align: left;">run_names</th>
+<th style="text-align: right;">fo_validation</th>
+<th style="text-align: right;">fo_calibration</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">hymod_nse</td>
+<td style="text-align: right;">0.2588847</td>
+<td style="text-align: right;">0.7680123</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">hymod_kge</td>
+<td style="text-align: right;">0.5804383</td>
+<td style="text-align: right;">0.8612329</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">smap_nse</td>
+<td style="text-align: right;">0.3819163</td>
+<td style="text-align: right;">0.5609216</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">smap_kge</td>
+<td style="text-align: right;">0.5852590</td>
+<td style="text-align: right;">0.5981980</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>Os parâmetros calibrados podem ser visualizados na tabela abaixo.</p>
+<div id="tbl-par" class="cell tbl-cap-location-top anchored" data-tbl-cal="Parâmetros calibrados.">
+<div class="sourceCode cell-code" id="cb89"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb89-1"><a href="#cb89-1" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span><span class="fu">kable</span>(par_hymod)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<table class="table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th style="text-align: left;">run_names</th>
+<th style="text-align: right;">cmax</th>
+<th style="text-align: right;">b</th>
+<th style="text-align: right;">alpha</th>
+<th style="text-align: right;">f_lento</th>
+<th style="text-align: right;">f_rap</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">hymod_nse</td>
+<td style="text-align: right;">492.0859</td>
+<td style="text-align: right;">0.4631542</td>
+<td style="text-align: right;">0.2211739</td>
+<td style="text-align: right;">0.1999990</td>
+<td style="text-align: right;">0.0261879</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">hymod_kge</td>
+<td style="text-align: right;">568.0662</td>
+<td style="text-align: right;">0.6483637</td>
+<td style="text-align: right;">0.6351459</td>
+<td style="text-align: right;">0.0230503</td>
+<td style="text-align: right;">0.6286751</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sourceCode cell-code" id="cb90"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb90-1"><a href="#cb90-1" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span><span class="fu">kable</span>(par_smap)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<table class="table table-sm table-striped small">
+<colgroup>
+<col style="width: 11%">
+<col style="width: 10%">
+<col style="width: 11%">
+<col style="width: 11%">
+<col style="width: 11%">
+<col style="width: 11%">
+<col style="width: 11%">
+<col style="width: 10%">
+<col style="width: 10%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">run_names</th>
+<th style="text-align: right;">str</th>
+<th style="text-align: right;">k2t</th>
+<th style="text-align: right;">ai</th>
+<th style="text-align: right;">crec</th>
+<th style="text-align: right;">capc</th>
+<th style="text-align: right;">kkt</th>
+<th style="text-align: right;">tuin</th>
+<th style="text-align: right;">eb</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">smap_nse</td>
+<td style="text-align: right;">738.2815</td>
+<td style="text-align: right;">0.9998516</td>
+<td style="text-align: right;">0.6943655</td>
+<td style="text-align: right;">0.5249737</td>
+<td style="text-align: right;">0.7977038</td>
+<td style="text-align: right;">0.5611409</td>
+<td style="text-align: right;">25.60330</td>
+<td style="text-align: right;">1.150222</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">smap_kge</td>
+<td style="text-align: right;">680.3547</td>
+<td style="text-align: right;">0.2575985</td>
+<td style="text-align: right;">0.5673034</td>
+<td style="text-align: right;">0.4274139</td>
+<td style="text-align: right;">0.0244788</td>
+<td style="text-align: right;">0.1968797</td>
+<td style="text-align: right;">26.83153</td>
+<td style="text-align: right;">1.052088</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>Analisando a série completa outro período chama a atenção, como evento observado em 1990. Vamos avaliar estes dois períodos mais profundamente para cada uma das rodadas realizadas.</p>
+<div class="cell fig-cap-location-bottom">
+<div class="cell-output-display">
+<div id="fig-serie-anos-1990" class="quarto-figure quarto-figure-center quarto-float anchored" data-cap-location="bottom">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-serie-anos-1990-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="trabalho_final_files/figure-html/fig-serie-anos-1990-1.png" class="img-fluid figure-img" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-serie-anos-1990-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;5: Séries históricas analisadas entre os anos de 1989 e 1991.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>Na Figura <a href="#fig-serie-anos-1990" class="quarto-xref">5</a>, percebe-se que somente o conjunto SMAP + KGE conseguiu representar adequadamente o o pico em janeiro de 1990. Em contraste, analisando as figuras anteriores (séries completas) é possível perceber que todos os modelos (à exceção do modelo HYMOD + NSE) prevêem um pico de vazão em “1992-02-08”. Seguiremos com a rodada 4 (SMAP + KGE) para as etapas de análise de sensibilidade e de avaliação dos erros.</p>
+</section>
+<section id="análise-de-sensibilidade" class="level2">
+<h2 class="anchored" data-anchor-id="análise-de-sensibilidade">Análise de sensibilidade</h2>
+<p>A análise de sensibilidade envolverá a utilização da função <code>fun_obj_kge</code> e da função <code>fun.smap</code> (que são chamadas dentro da função principal <code>fun_run_hydromod</code>). Faremos uma nova função que simplesmente roda, para um conjunto de parâmetros, o modelo SMAP e calcularemos a performance desta rodada com o KGE. Alteraremos um parâmetro por vez e avaliaremos gráficos de <span class="math inline">\(\theta_i\)</span> vs.&nbsp;FO.</p>
+<p>Já temos os dados originais (EPQ) armazenados dentro do objeto <code>ts</code> dentro da lista <code>resultados</code> de cada rodada anterior.</p>
+<div class="cell fig-cap-location-bottom">
+<div class="sourceCode cell-code" id="cb91" data-cap-location="bottom"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb91-1"><a href="#cb91-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Configurações iniciais</span></span>
+<span id="cb91-2"><a href="#cb91-2" aria-hidden="true" tabindex="-1"></a>d <span class="ot">&lt;-</span> <span class="dv">20</span>                            <span class="co"># número de discretizações</span></span>
+<span id="cb91-3"><a href="#cb91-3" aria-hidden="true" tabindex="-1"></a>par_otimo <span class="ot">&lt;-</span> resultados[[<span class="dv">4</span>]]<span class="sc">$</span>par   <span class="co"># extrair parâmetros da rodada 4</span></span>
+<span id="cb91-4"><a href="#cb91-4" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(par_otimo) <span class="ot">&lt;-</span> par_names_smap <span class="co"># nomear parâmetros</span></span>
+<span id="cb91-5"><a href="#cb91-5" aria-hidden="true" tabindex="-1"></a>ts_4 <span class="ot">&lt;-</span> resultados[[<span class="dv">4</span>]]<span class="sc">$</span>ts         <span class="co"># dados observados (s/ coluna "qsim")</span></span>
+<span id="cb91-6"><a href="#cb91-6" aria-hidden="true" tabindex="-1"></a><span class="co"># i &lt;- 1</span></span>
+<span id="cb91-7"><a href="#cb91-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Análise de sensibilidade</span></span>
+<span id="cb91-8"><a href="#cb91-8" aria-hidden="true" tabindex="-1"></a>res_sense <span class="ot">&lt;-</span> <span class="fu">list</span>()</span>
+<span id="cb91-9"><a href="#cb91-9" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span>(i <span class="cf">in</span> <span class="fu">seq_along</span>(par_otimo)){</span>
+<span id="cb91-10"><a href="#cb91-10" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb91-11"><a href="#cb91-11" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Definir sequência de valores p/ parâmetro i</span></span>
+<span id="cb91-12"><a href="#cb91-12" aria-hidden="true" tabindex="-1"></a>  seq_valores <span class="ot">&lt;-</span> <span class="fu">seq</span>(par_limits[[<span class="st">"smap"</span>]]<span class="sc">$</span>min[i], par_limits[[<span class="st">"smap"</span>]]<span class="sc">$</span>max[i], <span class="at">length.out =</span> d)</span>
+<span id="cb91-13"><a href="#cb91-13" aria-hidden="true" tabindex="-1"></a>  kges <span class="ot">&lt;-</span> <span class="fu">numeric</span>(d)</span>
+<span id="cb91-14"><a href="#cb91-14" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb91-15"><a href="#cb91-15" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span>(j <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span>d){</span>
+<span id="cb91-16"><a href="#cb91-16" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb91-17"><a href="#cb91-17" aria-hidden="true" tabindex="-1"></a>    par_teste <span class="ot">&lt;-</span> par_otimo</span>
+<span id="cb91-18"><a href="#cb91-18" aria-hidden="true" tabindex="-1"></a>    par_teste[i] <span class="ot">&lt;-</span> seq_valores[j] <span class="co"># altera somente o parâmetro i</span></span>
+<span id="cb91-19"><a href="#cb91-19" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb91-20"><a href="#cb91-20" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Roda o modelo</span></span>
+<span id="cb91-21"><a href="#cb91-21" aria-hidden="true" tabindex="-1"></a>    qsim <span class="ot">&lt;-</span> <span class="fu">fun.smap</span>(<span class="at">area =</span> area_catchment,</span>
+<span id="cb91-22"><a href="#cb91-22" aria-hidden="true" tabindex="-1"></a>                     <span class="at">x =</span> par_teste,</span>
+<span id="cb91-23"><a href="#cb91-23" aria-hidden="true" tabindex="-1"></a>                     <span class="at">EPQ =</span> ts_4[, <span class="sc">-</span><span class="dv">1</span>])</span>
+<span id="cb91-24"><a href="#cb91-24" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb91-25"><a href="#cb91-25" aria-hidden="true" tabindex="-1"></a>    <span class="co"># KGE</span></span>
+<span id="cb91-26"><a href="#cb91-26" aria-hidden="true" tabindex="-1"></a>    qobs <span class="ot">&lt;-</span> ts_4<span class="sc">$</span>qobs[<span class="sc">!</span><span class="fu">is.na</span>(ts_4<span class="sc">$</span>qobs)]</span>
+<span id="cb91-27"><a href="#cb91-27" aria-hidden="true" tabindex="-1"></a>    qsim <span class="ot">&lt;-</span> qsim[<span class="sc">!</span><span class="fu">is.na</span>(ts_4<span class="sc">$</span>qobs)]</span>
+<span id="cb91-28"><a href="#cb91-28" aria-hidden="true" tabindex="-1"></a>    kges[j] <span class="ot">&lt;-</span> <span class="sc">-</span><span class="fu">fun_obj_kge</span>(<span class="at">obs =</span> qobs, <span class="at">sim =</span> qsim)</span>
+<span id="cb91-29"><a href="#cb91-29" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb91-30"><a href="#cb91-30" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb91-31"><a href="#cb91-31" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb91-32"><a href="#cb91-32" aria-hidden="true" tabindex="-1"></a>  res_sense[[i]] <span class="ot">&lt;-</span> <span class="fu">tibble</span>(<span class="at">par =</span> <span class="fu">names</span>(par_otimo)[i],</span>
+<span id="cb91-33"><a href="#cb91-33" aria-hidden="true" tabindex="-1"></a>                           <span class="at">value =</span> seq_valores,</span>
+<span id="cb91-34"><a href="#cb91-34" aria-hidden="true" tabindex="-1"></a>                           <span class="at">kge =</span> kges)</span>
+<span id="cb91-35"><a href="#cb91-35" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb91-36"><a href="#cb91-36" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb91-37"><a href="#cb91-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb91-38"><a href="#cb91-38" aria-hidden="true" tabindex="-1"></a><span class="co"># Combinar resultados</span></span>
+<span id="cb91-39"><a href="#cb91-39" aria-hidden="true" tabindex="-1"></a>df_sense_plot <span class="ot">&lt;-</span> <span class="fu">bind_rows</span>(res_sense)</span>
+<span id="cb91-40"><a href="#cb91-40" aria-hidden="true" tabindex="-1"></a>plots_sense <span class="ot">&lt;-</span> <span class="fu">list</span>()</span>
+<span id="cb91-41"><a href="#cb91-41" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span>(p <span class="cf">in</span> <span class="fu">seq_along</span>(par_otimo)){</span>
+<span id="cb91-42"><a href="#cb91-42" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb91-43"><a href="#cb91-43" aria-hidden="true" tabindex="-1"></a>  dados_par <span class="ot">&lt;-</span> <span class="fu">subset</span>(df_sense_plot, par <span class="sc">==</span> <span class="fu">names</span>(par_otimo)[p])</span>
+<span id="cb91-44"><a href="#cb91-44" aria-hidden="true" tabindex="-1"></a>  plots_sense[[p]] <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(dados_par, <span class="fu">aes</span>(<span class="at">x =</span> value, <span class="at">y =</span> kge)) <span class="sc">+</span></span>
+<span id="cb91-45"><a href="#cb91-45" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_line</span>(<span class="at">color =</span> <span class="st">"steelblue"</span>, <span class="at">linewidth =</span> <span class="fl">0.7</span>) <span class="sc">+</span></span>
+<span id="cb91-46"><a href="#cb91-46" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_point</span>(<span class="at">color =</span> <span class="st">"firebrick"</span>, <span class="at">size =</span> <span class="fl">1.5</span>) <span class="sc">+</span></span>
+<span id="cb91-47"><a href="#cb91-47" aria-hidden="true" tabindex="-1"></a>    <span class="fu">labs</span>(<span class="at">title =</span> <span class="fu">names</span>(par_otimo)[p], <span class="at">x =</span> <span class="st">"Parâmetro"</span>, <span class="at">y =</span> <span class="st">"KGE"</span>) <span class="sc">+</span></span>
+<span id="cb91-48"><a href="#cb91-48" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme_bw</span>() <span class="sc">+</span></span>
+<span id="cb91-49"><a href="#cb91-49" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme</span>(<span class="at">panel.background =</span> <span class="cn">NULL</span>,</span>
+<span id="cb91-50"><a href="#cb91-50" aria-hidden="true" tabindex="-1"></a>          <span class="at">legend.position =</span>  <span class="st">"none"</span>,</span>
+<span id="cb91-51"><a href="#cb91-51" aria-hidden="true" tabindex="-1"></a>          <span class="at">plot.background =</span> <span class="fu">element_rect</span>(<span class="at">color =</span> <span class="st">"white"</span>),</span>
+<span id="cb91-52"><a href="#cb91-52" aria-hidden="true" tabindex="-1"></a>          <span class="at">panel.border =</span> <span class="fu">element_rect</span>(<span class="at">color =</span> <span class="st">"black"</span>, <span class="at">fill =</span> <span class="cn">NA</span>),</span>
+<span id="cb91-53"><a href="#cb91-53" aria-hidden="true" tabindex="-1"></a>          <span class="at">text =</span> <span class="fu">element_text</span>(<span class="at">family =</span> <span class="st">"mono"</span>, <span class="at">size =</span> <span class="dv">10</span>))</span>
+<span id="cb91-54"><a href="#cb91-54" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb91-55"><a href="#cb91-55" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb91-56"><a href="#cb91-56" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb91-57"><a href="#cb91-57" aria-hidden="true" tabindex="-1"></a><span class="fu">wrap_plots</span>(plots_sense, <span class="at">ncol =</span> <span class="dv">2</span>, <span class="at">nrow =</span> <span class="dv">4</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div id="fig-sense" class="quarto-figure quarto-figure-center quarto-float anchored" data-cap-location="bottom">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-sense-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="trabalho_final_files/figure-html/fig-sense-1.png" class="img-fluid figure-img" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-sense-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;6: Análise de sensibildiade rodada 4 (SMAP + KGE).
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>Vamos na Figura <a href="#fig-sense" class="quarto-xref">6</a> que os intervalos definidos conseguem contemplar somente mínimos nos parâmetros <code>str</code> e <code>crec</code>. Nos demais (parâmetros que representam taxas, ou seja, porcentagens) são representados por retas. Os gráficos nas últimas linhas representam condições inciais (<code>tuin</code> e <code>eb</code>) e percebe-se que sua escolha pouco influencia o resultado do coeficiente de eficiência.</p>
+</section>
+<section id="avaliação-dos-erros" class="level2">
+<h2 class="anchored" data-anchor-id="avaliação-dos-erros">Avaliação dos erros</h2>
+<p>Queremos representar os dados observados <span class="math inline">\(Q_{obs}\)</span> através de um modelo <span class="math inline">\(Q_{sim} = M(\theta|E,P,Q)\)</span>. Mas haverá sempre uma parcela a ser considerada de erros nessa modelagem <span class="math inline">\(\eta\)</span>, de modo que <span class="math inline">\(Q_{obs} = Q_{sim} + \eta\)</span>. Podemos analisar os resíduos de algumas maneiras. A primeira é através de uma plotagem de <span class="math inline">\(Q{obs} - Q_{sim}\)</span> vs.&nbsp;<span class="math inline">\(Q_{obs}\)</span>:</p>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="trabalho_final_files/figure-html/unnamed-chunk-8-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Essa primeira análise visual permite verificar uma tendência de aumento nos resíduos quanto maior a vazão observada. O fato de que esses resíduos não são constantes para diferentes valores de vazão indicam que <strong>não são homocedástico</strong>. Podemos verificar também um histograma dos mesmos.</p>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-res-histogram" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-res-histogram-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="trabalho_final_files/figure-html/fig-res-histogram-1.png" class="img-fluid figure-img" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-res-histogram-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;7: Histograma dos resíduos.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>No histograma acima, apesar da aparente normalidade, é possível verificar que temos muitas observações nas caudas, especialmente na cauda esquerda com observações mais distantes.</p>
+<p>Podemos fazer uma última análise ainda, avaliando o impacto que algumas observações exercem na estimativa do coeficiente de eficiência. Em seu trabalho, <span class="citation" data-cites="clark_abuse_2021">Clark et al. (<a href="#ref-clark_abuse_2021" role="doc-biblioref">2021</a>)</span> fazem uma avaliação do impacto que erros maiores têm na estimativa do coeficiente de Nash-Sutcliff. Os autores, em uma das abordagens de avaliação, ordenam os resíduos e removem aqueles que claramente se diferenciam dos demais para avaliar seu efeito no valor de <span class="math inline">\(\hat{KGE}\)</span>.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb92"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb92-1"><a href="#cb92-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Avaliar série de resíduos quadráticos</span></span>
+<span id="cb92-2"><a href="#cb92-2" aria-hidden="true" tabindex="-1"></a>residuals_series <span class="ot">&lt;-</span> (qobs <span class="sc">-</span> qsim)<span class="sc">^</span><span class="dv">2</span></span>
+<span id="cb92-3"><a href="#cb92-3" aria-hidden="true" tabindex="-1"></a>mse_series <span class="ot">&lt;-</span> <span class="fu">sum</span>(residuals_series)<span class="sc">/</span><span class="fu">length</span>(residuals_series)</span>
+<span id="cb92-4"><a href="#cb92-4" aria-hidden="true" tabindex="-1"></a>residuals_rank <span class="ot">&lt;-</span> <span class="fu">sort</span>(residuals_series, <span class="at">decreasing =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb92-5"><a href="#cb92-5" aria-hidden="true" tabindex="-1"></a>residuals_rank[<span class="dv">1</span><span class="sc">:</span><span class="dv">10</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> [1] 11710.4103  1976.4547  1741.9296  1642.9757  1311.4639  1206.0695
+ [7]  1075.6079  1052.8772   914.5207   812.1366</code></pre>
+</div>
+</div>
+<p>Nessa abordagem, os autores avaliam a influência dos 10 maiores resíduos no valor de <span class="math inline">\(\hat{MSE}\)</span> com todas as observações.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb94"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb94-1"><a href="#cb94-1" aria-hidden="true" tabindex="-1"></a>k <span class="ot">&lt;-</span> <span class="dv">10</span></span>
+<span id="cb94-2"><a href="#cb94-2" aria-hidden="true" tabindex="-1"></a>influence_k <span class="ot">&lt;-</span> <span class="fu">sum</span>(residuals_rank[<span class="dv">1</span><span class="sc">:</span>k])<span class="sc">/</span>(<span class="fu">length</span>(residuals_series)<span class="sc">*</span>mse_series)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-res-ranked" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-res-ranked-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="trabalho_final_files/figure-html/fig-res-ranked-1.png" class="img-fluid figure-img" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-res-ranked-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;8: Resíduos ordenados de forma descrescente.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>Observando a Figuras <a href="#fig-res-ranked" class="quarto-xref">8</a>, é possível notar que um grupo pequeno de observação se destaca significativamente das demais e que os 10 maiores resíduos representam 28.39 % do <span class="math inline">\(\hat{MSE}\)</span> total.</p>
+</section>
+<section id="quantis" class="level2">
+<h2 class="anchored" data-anchor-id="quantis">Quantis</h2>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-curva-permanencia" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-curva-permanencia-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="trabalho_final_files/figure-html/fig-curva-permanencia-1.png" class="img-fluid figure-img" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-curva-permanencia-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;9: Curva de permanência das rodadas para o período completo. As curvas <code>quant_sim_</code> 1, 2, 3 e 4 representam, respectivamente, as rodadas “HYMOD + NSE”, “HYMOD + KGE”, “SMAP + NSE” e “SMAP + KGE”.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>Percebe-se que a curva de permanência da rodada 4 (SMAP + KGE) é o que mais se aproxima dos quantis empíricos (da série de vazões observadas). Observa-se também que o Hymod é o modelo que mais se afasta dos quantis observados.</p>
+<p>Nos últimos anos da série histórica, observou-se um aumento nas vazões mínimas. A escolha do Hymod, por exemplo, acarretaria em subestimativas dessas vazões mínimas.</p>
+</section>
+</section>
+<section id="referências" class="level1">
+<h1>Referências</h1>
+<div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list">
+<div id="ref-almagro_cabra_2023" class="csl-entry" role="listitem">
+Almagro, Andre, Paulo Tarso Sanches Oliveira, Antonio Alves Meira Neto, Tirthankar Roy, and Peter Troch. 2023. <span>“<span>CABra</span>: A Novel Large-Sample Dataset for <span>Brazilian</span> Catchments.”</span> Zenodo. <a href="https://doi.org/10.5281/ZENODO.7612350">https://doi.org/10.5281/ZENODO.7612350</a>.
+</div>
+<div id="ref-clark_abuse_2021" class="csl-entry" role="listitem">
+Clark, Martyn P., Richard M. Vogel, Jonathan R. Lamontagne, Naoki Mizukami, Wouter J. M. Knoben, Guoqiang Tang, Shervan Gharari, et al. 2021. <span>“The <span>Abuse</span> of <span>Popular</span> <span>Performance</span> <span>Metrics</span> in <span>Hydrologic</span> <span>Modeling</span>.”</span> <em>Water Resources Research</em> 57 (9): e2020WR029001. <a href="https://doi.org/10.1029/2020WR029001">https://doi.org/10.1029/2020WR029001</a>.
+</div>
+</div>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const disableStylesheet = (stylesheets) => {
+    for (let i=0; i < stylesheets.length; i++) {
+      const stylesheet = stylesheets[i];
+      stylesheet.rel = 'prefetch';
+    }
+  }
+  const enableStylesheet = (stylesheets) => {
+    for (let i=0; i < stylesheets.length; i++) {
+      const stylesheet = stylesheets[i];
+      stylesheet.rel = 'stylesheet';
+    }
+  }
+  const manageTransitions = (selector, allowTransitions) => {
+    const els = window.document.querySelectorAll(selector);
+    for (let i=0; i < els.length; i++) {
+      const el = els[i];
+      if (allowTransitions) {
+        el.classList.remove('notransition');
+      } else {
+        el.classList.add('notransition');
+      }
+    }
+  }
+  const toggleGiscusIfUsed = (isAlternate, darkModeDefault) => {
+    const baseTheme = document.querySelector('#giscus-base-theme')?.value ?? 'light';
+    const alternateTheme = document.querySelector('#giscus-alt-theme')?.value ?? 'dark';
+    let newTheme = '';
+    if(darkModeDefault) {
+      newTheme = isAlternate ? baseTheme : alternateTheme;
+    } else {
+      newTheme = isAlternate ? alternateTheme : baseTheme;
+    }
+    const changeGiscusTheme = () => {
+      // From: https://github.com/giscus/giscus/issues/336
+      const sendMessage = (message) => {
+        const iframe = document.querySelector('iframe.giscus-frame');
+        if (!iframe) return;
+        iframe.contentWindow.postMessage({ giscus: message }, 'https://giscus.app');
+      }
+      sendMessage({
+        setConfig: {
+          theme: newTheme
+        }
+      });
+    }
+    const isGiscussLoaded = window.document.querySelector('iframe.giscus-frame') !== null;
+    if (isGiscussLoaded) {
+      changeGiscusTheme();
+    }
+  }
+  const toggleColorMode = (alternate) => {
+    // Switch the stylesheets
+    const alternateStylesheets = window.document.querySelectorAll('link.quarto-color-scheme.quarto-color-alternate');
+    manageTransitions('#quarto-margin-sidebar .nav-link', false);
+    if (alternate) {
+      enableStylesheet(alternateStylesheets);
+      for (const sheetNode of alternateStylesheets) {
+        if (sheetNode.id === "quarto-bootstrap") {
+          toggleBodyColorMode(sheetNode);
+        }
+      }
+    } else {
+      disableStylesheet(alternateStylesheets);
+      toggleBodyColorPrimary();
+    }
+    manageTransitions('#quarto-margin-sidebar .nav-link', true);
+    // Switch the toggles
+    const toggles = window.document.querySelectorAll('.quarto-color-scheme-toggle');
+    for (let i=0; i < toggles.length; i++) {
+      const toggle = toggles[i];
+      if (toggle) {
+        if (alternate) {
+          toggle.classList.add("alternate");     
+        } else {
+          toggle.classList.remove("alternate");
+        }
+      }
+    }
+    // Hack to workaround the fact that safari doesn't
+    // properly recolor the scrollbar when toggling (#1455)
+    if (navigator.userAgent.indexOf('Safari') > 0 && navigator.userAgent.indexOf('Chrome') == -1) {
+      manageTransitions("body", false);
+      window.scrollTo(0, 1);
+      setTimeout(() => {
+        window.scrollTo(0, 0);
+        manageTransitions("body", true);
+      }, 40);  
+    }
+  }
+  const isFileUrl = () => { 
+    return window.location.protocol === 'file:';
+  }
+  const hasAlternateSentinel = () => {  
+    let styleSentinel = getColorSchemeSentinel();
+    if (styleSentinel !== null) {
+      return styleSentinel === "alternate";
+    } else {
+      return false;
+    }
+  }
+  const setStyleSentinel = (alternate) => {
+    const value = alternate ? "alternate" : "default";
+    if (!isFileUrl()) {
+      window.localStorage.setItem("quarto-color-scheme", value);
+    } else {
+      localAlternateSentinel = value;
+    }
+  }
+  const getColorSchemeSentinel = () => {
+    if (!isFileUrl()) {
+      const storageValue = window.localStorage.getItem("quarto-color-scheme");
+      return storageValue != null ? storageValue : localAlternateSentinel;
+    } else {
+      return localAlternateSentinel;
+    }
+  }
+  const darkModeDefault = false;
+  let localAlternateSentinel = darkModeDefault ? 'alternate' : 'default';
+  // Dark / light mode switch
+  window.quartoToggleColorScheme = () => {
+    // Read the current dark / light value 
+    let toAlternate = !hasAlternateSentinel();
+    toggleColorMode(toAlternate);
+    setStyleSentinel(toAlternate);
+    toggleGiscusIfUsed(toAlternate, darkModeDefault);
+  };
+  // Ensure there is a toggle, if there isn't float one in the top right
+  if (window.document.querySelector('.quarto-color-scheme-toggle') === null) {
+    const a = window.document.createElement('a');
+    a.classList.add('top-right');
+    a.classList.add('quarto-color-scheme-toggle');
+    a.href = "";
+    a.onclick = function() { try { window.quartoToggleColorScheme(); } catch {} return false; };
+    const i = window.document.createElement("i");
+    i.classList.add('bi');
+    a.appendChild(i);
+    window.document.body.appendChild(a);
+  }
+  // Switch to dark mode if need be
+  if (hasAlternateSentinel()) {
+    toggleColorMode(true);
+  } else {
+    toggleColorMode(false);
+  }
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      // TODO in 1.5, we should make sure this works without a callout special case
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

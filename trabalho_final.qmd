@@ -1,0 +1,615 @@
+---
+title: "Trabalho Final – Simulação Hidrológica"
+author: "Tomás Antonio | 242114243"
+format: html
+toc: true
+mainfont: JetBrains Mono
+monofont: Roboto Mono
+monofontoptions: Scale = 0.9
+fontsize: 9pt
+editor: visual
+theme:
+  light: flatly
+  dark: darkly
+execute: 
+  freeze: auto
+  cache: true
+bl-cap-location: top
+bibliography: referencias.bib
+---
+
+# Premissa do trabalho
+
+Este trabalho consiste na aplicação e calibração dos modelos hidrológicos Hymod e SMAP para simulação de uma bacia hidrográfica escolhida na base de dados CABra [@almagro_cabra_2023]. Os objetivos envolvem a construção de uma função "modular" que permite escolher entre modelos, funções objetivos e calibradores diferentes. Serão aplicados dois calibradores conhecidos: o algoritmo de Nelder-Mead, de busca local, através da função nativa do R `optim`; e o algoritmo de busca global *Shuffle Complex Estimation* (SCE), através da função `SCEOptim` do pacote `SoilHyP`. A partir desta calibração, serão realizados: análise de sensibilidade dos parâmetros; avaliações com diferentes períodos de aquecimento, calibração e validação; verificação dos resíduos (possuem média igual a zero? são homoscedásticos?); e, finalmente, a estimação de quantis empíricos (observados) e simulados.
+
+```{r}
+#| message: false
+#| warning: false
+#| output: false
+
+# Definições prévias
+rm(list = ls()); gc() # limpar ambiente
+set.seed(9)           # definir seed
+
+# Pacotes
+pacman::p_load(lubridate, tidyverse, ggplot2, SoilHyP, beepr, patchwork, sf, stars, knitr)
+
+# Importar funções
+source("fun_run_hydromod.R") # função que roda o modelo completo
+
+# Argumentos iniciais
+path <- "Base de Dados" # diretório c/ arquivos `climate` e `streamflow`
+catchment_code <- 697   # código da bacia hidrográfica da base CABra
+```
+
+## Área de estudo
+
+```{r}
+#| output: false
+#| echo: false
+
+# Ler polígono da bacia hidrográfica
+sf_catchment <-
+  st_read(dsn = paste0(path, "/CABra_boundaries/CABra_boundaries.shp")) %>% 
+  filter(ID_CABra == catchment_code)
+
+# st_write(sf_catchment,
+#          paste0(path, "/CABra_boundaries/", "CABra_boundaries_", catchment_code, ".shp"))
+
+# Ler atributos
+df_attributes <- read.table(paste0(path, "/CABra_attributes/CABra_general_attributes.txt"),
+                                   skip = 7, header = TRUE, sep = "\t")[-1,]
+
+# Área de drenagem
+area_catchment <- sf_catchment[sf_catchment[["ID_CABra"]] == catchment_code, "area_CABra", drop = TRUE]
+
+# Ler raster de elevação
+# dem_catchment <- stars::read_stars(.x = paste0(path, "/DEM_BH_Torto.tif"))
+```
+
+A bacia hidrográfica escolhida é a de número `r catchment_code`, localizada no Distrito Federal, referente à drenagem do Ribeirão do Torto, com área igual a `r round(area_catchment, 2)` km².
+
+```{r}
+#| echo: false
+#| fig-align: center
+
+# Exportar geometria bacia do Ribeirão do Torto
+colors <- c("Exutório" = "red", "Bacia" = "black")
+plot_location <- 
+  sf_catchment %>% 
+  ggplot() +
+  # geom_stars(data = dem_catchment) +
+  geom_sf(aes(color = "Bacia"), linewidth = 0.6) +
+  geom_point(aes(x = X_outlet, y = Y_outlet, color = "Exutório"), size = 2) +
+  scale_color_manual(values = colors) +
+  labs(x = "", y = "", color ="") +
+  theme_minimal() +
+  theme(legend.position =  "bottom",
+        plot.background = element_rect(color = "white"),
+        panel.border = element_rect(color = "black", fill = NA),
+        text = element_text(family = "mono", size = 10))
+
+plot_location
+```
+
+# Aplicação
+
+## Modelos hidrológicos
+
+O modelo **SMAP** (*Soil Moisture Accounting Procedure*) é um modelo concentrado que, de maneira geral, possui três reservatórios: um reservatório do solo, um reservatório superficial e um reservatório subterrâneo. O escoamento superficial modelado pelo método SCS (do *Soil Conservation Service*, atual *Natural Resources Conservation Service*). O funcionamento do SMAP se dá da seguinte maneira: para determinada lâmina precipitada, parte se torna escoamento superficial, parte evapora e parte abastece o reservatório do solo. A cada iteração, o volume nesses reservatórios é atualizado e a vazão (que soma os escoamentos base e direto) é calculada no "exutório". O fluxo em cada reservatório é dado por uma relação linear.
+
+São **parâmetros** do modelo SMAP:
+
+1.  `str`: capacidade total do reservatório do solo;
+2.  `k2t`: coeficiente do escoamento direto;
+3.  `ai`: abstração inicial (retenção de água no solo sem que haja escoamento);
+4.  `crec`: coeficiente de recarga do reservatório subterrâneo;
+5.  `capc`: define o nível a partir do qual haverá percolação (recarga);
+6.  `kkt`: coeficiente do escoamento de base;
+7.  `tuin`: teor de umidade inicial (condição inicial);
+8.  `ebin`: escoamento de base inicial (condição inicial);
+
+O modelo **Hymod** também é um modelo concentrado, porém com algumas características probabilísticas que buscam simular um comportamento distribuído no espaço. O modelo busca representar a distribuição espacial da capacidade de armazenamento ($C$), como se diferentes partes possuíssem diferentes "estados" de armazenamento ao longo do tempo. Cada ponto dentro da bacia teria uma capacidade e uma probabilidade de estar saturado. Essa probabilidade é dada por:
+
+$$
+P(C \leq c(t)) = \int_0^{c(t)} f(c)dc = F_c(c(t)),
+$$ em que
+
+$$
+\begin{gather}
+f(c) = \frac{B}{C_{max}}\Bigg(1 - \frac{C}{C_{max}} \Bigg)^{B - 1}, \\
+F(c) = 1 - \Bigg(1 - \frac{C}{C_{max}} \Bigg)^{B}.
+\end{gather}
+$$
+
+São **parâmetros** do Hymod:
+
+1.  `Cmax`: capacidade máxima de armazenamento;
+2.  `B`: grau de variabilidade espacial da capcidade de armazenamento de água no solo;
+3.  `Alpha`: fator de distribuição do fluxo entre reservatórios lento e rápido;
+4.  `FractionLeavesSlowTank`: fração do reservatório tempo que esvazia a cada passo de tempo;
+5.  `FractionLeavesQuickTank`: fração do reservatório rápido que esvazia a cada passo de tempo.
+
+## Clibração
+
+Duas funções objetivo serão empregadas neste exercício: o coeficiente de eficiência de Nash-Sutcliffe (KGE), dado por:
+
+$$NSE = 1 - \frac{\sum(Q_{obs \ i} - Q_{sim \ i})^2}{\sum(Q_{obs \ i} - \bar Q_{obs})^2},$$
+
+que pode ser intrerpretado como uma comparação entre dois modelos (um no denominador e outro no numerador), avaliados pelo erro quadrático médio; e o coeficiente de eficiência de Kling-Gupta (KGE), dado por:
+
+$$KGE = 1 - \sqrt{(\bar Q_{sim}/\bar Q_{obs} - 1)^2 + (S_{sim}/S_{obs} - 1)^2 + (\hat\rho(Q_{sim}, Q_{obs}) - 1)^2},$$ que, no fundo, computa diferentes componentes de distância. Ambos, quanto mais próximos de 1, indicam melhor ajuste do modelo.
+
+Essas duas funções são utilizadas em um ambiente de otimização (nesse caso de maximização), respeitando restrições como limites máximos e mínimos dos parâmetros do modelo. O problema se resuma a minimizar a diferença entre a série observada e a série simulada maximizando estas duas funções objetivo.
+
+Nesse contexto, diferentes algoritmos podem ser aplicados para fazer essa otimização. Neste trabalho serão utilizados dois algoritmos. O primeiro, **Nelder-Mead** (NM), é um algoritmo de busca local baseado no "simplex", que testa mudanças de posição dos parâmetros, caminhando com eles até achar a melhor solução com base em critérios de parada -- não muito adequado para modelos hidrológicos, pois estes algoritmos podem se prender em pontos mínimos/máximos locais. O segundo, baseado em algoritmos evolucionários, é denominado ***Shuffle Complex Evolution*** (SCE). Seu funcionamento consiste na construção de *complexes*, conjuntos de soluções geradas aleatoriamente, que são ordenadas conforme avaliações da função objetivo. A evolução desses grupos é feita, originalmente, usando o "simplex". Atribui-se às soluções uma probabilidade de seleção baseado em sua posição e um novo grupo é formado selecionando um número de soluções conforme essa probabilidade -- processo garante que até soluções com baixo valor da função objetivo sejam selecionadas evitando que o algoritmo fique preso em um ótimo local. Finalmente, é feita a mistura das soluções e a formação de novos grupos para repetição do processo até que os critérios de parada do algoritmo sejam atendidos.
+
+## Estrutura da função `fun_run_hydromod`
+
+A função `fun+run_hydromod` foi desenvolvida como uma função modular que permite que o usuário possa escolher, principalmente, entre funções objetivo NSE ou KGE com `which_obj`, modelos hidrológicos SMAP ou Hymod com `which_model` e calibradores com `which_cal`. Adicionalmente, a plataforma CABra também dispõem de diferentes tipos de evapotranspiração, de modo que também é possível a escolha com o argumento `which_et`. Outros argumentos também são apresentados abaixo:
+
+```{r}
+#| eval: false
+
+# Parâmetros
+## path: 'character' caminho do diretório c/ arquivos: 
+### CABra_<catchment_code>_streamflow.txt e CABra_<catchment_code>_climate.txt
+## catchment_code: 'int' código da bacia hidrográfica do CABra
+## which_et: 'character' qual modelo (escolher 1) de evapotranspiração usar (et_ens, pet_pm, pet_pt, pet_hg)
+## periods: 'vector' c/ períodos de aquecimento, calibração e validação (soma = 1)
+## par: 'vector' de parâmetros do modelo hidrológico
+## which_obj: 'character' c/ qual função objetivo utilizar (nse, kge)
+## which_model: 'character' c/ qual modelo hidrológico utilizar (hymod, smap)
+## ...: outros parâmetros:
+### par_limits: tbl_df c/ colunas 'nome_par', 'min' e 'max' nessa ordem p/ SCEOptim
+
+fun_run_hydromod <- function(path, catchment_code, which_et,
+                             periods, par, which_obj = "nse", which_model = "hymod",
+                             which_cal = "sce", control, ...){...}
+```
+
+Internamente, a função chama, com a função `source()`, outras funções em um arquivo auxiliar `proj_functions.R`.
+
+# Rodando o modelo
+
+## Dados de entrada
+
+Já definimos `path` (`r path`) e `catchment_code` (`r catchment_code`) anteriormente. Vamos definir outros argumentos gerais necessários e, em seguida, os parâmetros específicos para as rodadas do modelo que faremos.
+
+```{r}
+which_et <- "pet_pm"            # modelo de evapotranspiração potencial (Penman-Monteith)
+periods <- c(0.2, 0.5, 0.3)     # perídos (%) de aquecimento, calibração e validação
+
+# Parâmetros e limites
+params <- list("hymod" = c("cmax" = 300, "b" = 0.3, "alpha" =  0.6, "f_lento" = 0.01, "f_rap" =  0.4),  
+               "smap" = c("str" = 300, "k2t" = 0.3, "ai" = 0.1, "crec" = 5, "capc" = 0.35, "kkt" = 0.5, "tuin" = 200, "eb" = 20))
+par_limits <- list("hymod" = tibble(par_name = c("cmax", "b", "alpha", "f_lento", "f_rap"),
+                                min = c(50, 1e-6, 1e-6, 1e-6, 1e-6),
+                                max = c(1000, 2, 1, 0.2, 0.9)),
+               "smap" = tibble(par_name = c("str", "k2t", "ai", "crec", "capc", "kkt", "tuin", "ebin"),
+                               min = c(10, 1e-6, 1e-6, 1e-6, 1e-6, 1e-6, 10, 1),
+                               max = c(1000, 1, 1, 10, 1, 1, 1000, 1000)))
+
+control <- list(maxit = 20,     # critérios de parada do SCE
+                reltol = 0.001,
+                ncomplex = 5,
+                tolsteps = 6,
+                trace = 1)
+```
+
+As rodadas mencionadas referem-se às combinações entre 1) modelo e 2) função objetivo (usaremos somente o `SCEOptim` para calibrar os modelos). Usaremos um loop-for para rodar e armazenar os resultados em uma lista.
+
+```{r}
+#| 
+
+which_obj <- c("nse", "kge"); which_model <- c("hymod", "smap"); which_cal <- "sce"
+combinations <- as_tibble(expand.grid(which_obj, which_model))
+resultados <- vector(mode = "list", length = 4)
+
+for(i in 1:nrow(combinations)){
+  
+  fo <- combinations[[1]][[i]]
+  mod <- combinations[[2]][[i]]
+  message("\nComeçando combinação ", fo, " e ", mod, "...\n")
+  par <- params[[mod]]
+  lim <- par_limits[[mod]]
+  
+  res_run <-
+    fun_run_hydromod(path = path,
+                     catchment_code = catchment_code,
+                     which_et = "pet_pm",
+                     periods = periods,
+                     which_obj = fo,
+                     which_model = mod,
+                     which_cal = which_cal,
+                     par = par,
+                     par_limits = lim,
+                     control = control)
+  
+  resultados[[i]] <- res_run
+  
+}
+
+
+```
+
+## Séries simuladas
+
+Vamos avaliar as séries históricas de vazão e os resultados das simulações.
+
+```{r}
+#| warning: false
+#| echo: false
+#| label: fig-series-historicas
+#| fig-cap: Séries históricas completas.
+
+plot_nse_hymod <- resultados[[1]]$plot + ggtitle("HYMOD + NSE", subtitle = paste("NSE(validação) = ", round(resultados[[1]]$fo_value, 2))); plot_nse_hymod
+plot_kge_hymod <- resultados[[2]]$plot + ggtitle("HYMOD + KGE", subtitle = paste("KGE(validação) = ", round(resultados[[2]]$fo_value, 2))); plot_kge_hymod
+plot_nse_smap <- resultados[[3]]$plot + ggtitle("SMAP + NSE", subtitle = paste("NSE(validação) = ", round(resultados[[3]]$fo_value, 2))); plot_nse_smap
+plot_kge_smap <- resultados[[4]]$plot + ggtitle("SMAP + KGE", subtitle = paste("KGE(validação) = ", round(resultados[[4]]$fo_value, 2))); plot_kge_smap
+
+# (plot_nse_hymod + plot_nse_smap + plot_nse_smap + plot_kge_smap) + patchwork::plot_layout(ncol = 2, )
+```
+
+```{r}
+#| echo: false
+
+# Valor da função objetivo p/ validação
+fo_val <- c(resultados[[1]]$fo_value,
+            resultados[[2]]$fo_value,
+            resultados[[3]]$fo_value,
+            resultados[[4]]$fo_value)
+
+# Valor da função objetivo p/ calibração
+fo_cal <- c(-resultados[[1]]$optimization$value,
+            -resultados[[2]]$optimization$value,
+            -resultados[[3]]$optimization$value,
+            -resultados[[4]]$optimization$value)
+
+run_names <- paste(combinations$Var2, combinations$Var1, sep = "_")
+fo_summary <- tibble(run_names = run_names,
+                     fo_validation = fo_val,
+                     fo_calibration = fo_cal)
+
+# Parâmetros
+par_names_hymod <- names(params[["hymod"]])
+par_names_smap <- names(params[["smap"]])
+
+# Hymod
+par_hymod <- as_tibble(rbind(resultados[[1]]$par, resultados[[2]]$par))
+names(par_hymod) <- par_names_hymod
+par_hymod <- cbind("run_names" = run_names[c(1,2)], par_hymod)
+
+# SMAP
+par_smap <- as_tibble(rbind(resultados[[3]]$par, resultados[[4]]$par))
+names(par_smap) <- par_names_smap
+par_smap <- cbind("run_names" = run_names[c(3,4)], par_smap)
+
+```
+
+
+Pelas séries históricas observadas, percebe-se que durante os anos de 2000 a 2006 houve um aumento nas vazões mínimas que não havia sido observado em anos anteriores (durante os anos de calibração). Essa diferença nas mínimas pode explicar a discrepância entre os coeficientes de eficiência da calibração e da validação. A primeira simulação, por exemplo, envolve o NSE e o modelo Hymod. Nessa rodada, o valor da função objetivo da calibração foi de `r round(resultados[[1]]$optimization$value, 2)`, enquanto o da validação foi de apenas `r round(resultados[[1]]$fo_value, 2)`. Os resultados das demais rodadas são apresentados na tabela abaixo.
+
+```{r}
+#| label: tbl-fo-values
+#| tbl-cal: Resultados dos coeficientes de eficiência para calibração e validação.
+#| tbl-cap-location: top
+
+knitr::kable(fo_summary)
+```
+
+Os parâmetros calibrados podem ser visualizados na tabela abaixo.
+
+```{r}
+#| label: tbl-par
+#| tbl-cal: Parâmetros calibrados.
+#| tbl-cap-location: top
+
+knitr::kable(par_hymod)
+knitr::kable(par_smap)
+```
+
+
+Analisando a série completa outro período chama a atenção, como evento observado em 1990. Vamos avaliar estes dois períodos mais profundamente para cada uma das rodadas realizadas.
+
+```{r}
+#| echo: false
+#| warning: false
+#| label: fig-serie-anos-1990
+#| fig-cap-location: bottom
+#| fig-cap: Séries históricas analisadas entre os anos de 1989 e 1991.
+
+date_range <- as.Date(c("1989-01-01", "1991-01-01"))
+colors <- c("Observada" = "black", "Simulada" = "red")
+
+plot_hymod_nse <- resultados[[1]]$ts %>% 
+  ggplot(aes(x = date)) +
+    geom_line(aes(y = qobs, color = "Observada")) +
+    geom_line(aes(y = qsim, color = "Simulada"), alpha = 0.65) +
+    coord_cartesian(xlim = date_range) +
+    labs(title = "HYMOD + NSE", paste("NSE(validação) = ", round(resultados[[1]]$fo_value, 2)),
+         x = "Tempo [anos]", y = "Vazão [m³/s]", color = "") +
+    scale_color_manual(values = colors) +
+    theme_bw() +
+    theme(legend.position =  "bottom",
+          plot.background = element_rect(color = "white"),
+          panel.border = element_rect(color = "black", fill = NA),
+          text = element_text(family = "JetBrains Mono", size = 10))
+
+plot_hymod_kge <- resultados[[2]]$ts %>% 
+  ggplot(aes(x = date)) +
+    geom_line(aes(y = qobs, color = "Observada")) +
+    geom_line(aes(y = qsim, color = "Simulada"), alpha = 0.65) +
+    coord_cartesian(xlim = date_range) +
+    labs(title = "HYMOD + KGE", subtitle = paste("KGE(validação) = ", round(resultados[[2]]$fo_value, 2)),
+         x = "Tempo [anos]", y = "Vazão [m³/s]", color = "") +
+    scale_color_manual(values = colors) +
+    theme_bw() +
+    theme(legend.position =  "bottom",
+          plot.background = element_rect(color = "white"),
+          panel.border = element_rect(color = "black", fill = NA),
+          text = element_text(family = "JetBrains Mono", size = 10))
+
+plot_smap_nse <- resultados[[3]]$ts %>% 
+  ggplot(aes(x = date)) +
+    geom_line(aes(y = qobs, color = "Observada")) +
+    geom_line(aes(y = qsim, color = "Simulada"), alpha = 0.65) +
+    coord_cartesian(xlim = date_range) +
+    labs(title = "SMAP + NSE", subtitle = paste("NSE(validação) = ", round(resultados[[3]]$fo_value, 2)),
+         x = "Tempo [anos]", y = "Vazão [m³/s]", color = "") +
+    scale_color_manual(values = colors) +
+    theme_bw() +
+    theme(legend.position =  "bottom",
+          plot.background = element_rect(color = "white"),
+          panel.border = element_rect(color = "black", fill = NA),
+          text = element_text(family = "JetBrains Mono", size = 10))
+
+plot_smap_kge <- resultados[[4]]$ts %>% 
+  ggplot(aes(x = date)) +
+    geom_line(aes(y = qobs, color = "Observada")) +
+    geom_line(aes(y = qsim, color = "Simulada"), alpha = 0.65) +
+    coord_cartesian(xlim = date_range) +
+    labs(title = "SMAP + KGE", subtitle = paste("KGE(validação) = ", round(resultados[[4]]$fo_value, 2)),
+         x = "Tempo [anos]", y = "Vazão [m³/s]", color = "") +
+    scale_color_manual(values = colors) +
+    theme_bw() +
+    theme(legend.position =  "bottom",
+          plot.background = element_rect(color = "white"),
+          panel.border = element_rect(color = "black", fill = NA),
+          text = element_text(family = "JetBrains Mono", size = 10))
+
+(plot_hymod_nse + plot_hymod_kge + plot_smap_nse + plot_smap_kge) +
+  patchwork::plot_layout(ncol = 2, guides = "collect") &
+  theme(legend.position = "bottom",
+        text = element_text(family = "mono", size = 9))
+
+```
+
+Na Figura [-@fig-serie-anos-1990], percebe-se que somente o conjunto SMAP + KGE conseguiu representar adequadamente o o pico em janeiro de 1990. Em contraste, analisando as figuras anteriores (séries completas) é possível perceber que todos os modelos (à exceção do modelo HYMOD + NSE) prevêem um pico de vazão em "1992-02-08". Seguiremos com a rodada 4 (SMAP + KGE) para as etapas de análise de sensibilidade e de avaliação dos erros.
+
+## Análise de sensibilidade
+
+A análise de sensibilidade envolverá a utilização da função `fun_obj_kge` e da função `fun.smap` (que são chamadas dentro da função principal `fun_run_hydromod`). Faremos uma nova função que simplesmente roda, para um conjunto de parâmetros, o modelo SMAP e calcularemos a performance desta rodada com o KGE. Alteraremos um parâmetro por vez e avaliaremos gráficos de $\theta_i$ vs. FO.
+
+Já temos os dados originais (EPQ) armazenados dentro do objeto `ts` dentro da lista `resultados` de cada rodada anterior.
+
+```{r}
+#| label: fig-sense
+#| fig-cap-location: bottom
+#| fig-cap: Análise de sensibildiade rodada 4 (SMAP + KGE).
+
+# Configurações iniciais
+d <- 20                            # número de discretizações
+par_otimo <- resultados[[4]]$par   # extrair parâmetros da rodada 4
+names(par_otimo) <- par_names_smap # nomear parâmetros
+ts_4 <- resultados[[4]]$ts         # dados observados (s/ coluna "qsim")
+# i <- 1
+# Análise de sensibilidade
+res_sense <- list()
+for(i in seq_along(par_otimo)){
+  
+  # Definir sequência de valores p/ parâmetro i
+  seq_valores <- seq(par_limits[["smap"]]$min[i], par_limits[["smap"]]$max[i], length.out = d)
+  kges <- numeric(d)
+  
+  for(j in 1:d){
+    
+    par_teste <- par_otimo
+    par_teste[i] <- seq_valores[j] # altera somente o parâmetro i
+    
+    # Roda o modelo
+    qsim <- fun.smap(area = area_catchment,
+                     x = par_teste,
+                     EPQ = ts_4[, -1])
+    
+    # KGE
+    qobs <- ts_4$qobs[!is.na(ts_4$qobs)]
+    qsim <- qsim[!is.na(ts_4$qobs)]
+    kges[j] <- -fun_obj_kge(obs = qobs, sim = qsim)
+    
+  }
+  
+  res_sense[[i]] <- tibble(par = names(par_otimo)[i],
+                           value = seq_valores,
+                           kge = kges)
+  
+}
+
+# Combinar resultados
+df_sense_plot <- bind_rows(res_sense)
+plots_sense <- list()
+for(p in seq_along(par_otimo)){
+  
+  dados_par <- subset(df_sense_plot, par == names(par_otimo)[p])
+  plots_sense[[p]] <- ggplot(dados_par, aes(x = value, y = kge)) +
+    geom_line(color = "steelblue", linewidth = 0.7) +
+    geom_point(color = "firebrick", size = 1.5) +
+    labs(title = names(par_otimo)[p], x = "Parâmetro", y = "KGE") +
+    theme_bw() +
+    theme(panel.background = NULL,
+          legend.position =  "none",
+          plot.background = element_rect(color = "white"),
+          panel.border = element_rect(color = "black", fill = NA),
+          text = element_text(family = "mono", size = 10))
+  
+}
+
+wrap_plots(plots_sense, ncol = 2, nrow = 4)
+```
+
+Vamos na Figura [-@fig-sense] que os intervalos definidos conseguem contemplar somente mínimos nos parâmetros `str` e `crec`. Nos demais (parâmetros que representam taxas, ou seja, porcentagens) são representados por retas. Os gráficos nas últimas linhas representam condições inciais (`tuin` e `eb`) e percebe-se que sua escolha pouco influencia o resultado do coeficiente de eficiência.
+
+## Avaliação dos erros
+
+Queremos representar os dados observados $Q_{obs}$ através de um modelo $Q_{sim} = M(\theta|E,P,Q)$. Mas haverá sempre uma parcela a ser considerada de erros nessa modelagem $\eta$, de modo que $Q_{obs} = Q_{sim} + \eta$. Podemos analisar os resíduos de algumas maneiras. A primeira é através de uma plotagem de $Q{obs} - Q_{sim}$ vs. $Q_{obs}$:
+
+```{r}
+#| warning: false
+#| echo: false
+
+ts_4$residuals <- ts_4$qobs - ts_4$qsim
+ts_4 %>% 
+  ggplot(aes(x = qobs, y = residuals)) +
+  geom_line(color = "steelblue") +
+  geom_point(color = "firebrick", alpha = 0.8) +
+  labs(x = "Qobs [m³/s]", y = "(Qobs - Qsim)") +
+    theme_bw() +
+    theme(panel.background = NULL,
+          legend.position =  "none",
+          plot.background = element_rect(color = "white"),
+          panel.border = element_rect(color = "black", fill = NA),
+          text = element_text(family = "mono", size = 10))
+```
+Essa primeira análise visual permite verificar uma tendência de aumento nos resíduos quanto maior a vazão observada. O fato de que esses resíduos não são constantes para diferentes valores de vazão indicam que **não são homocedástico**. Podemos verificar também um histograma dos mesmos.
+
+```{r}
+#| warning: false
+#| echo: false
+#| label: fig-res-histogram
+#| fig-cap: Histograma dos resíduos.
+
+plot_residuals <- list(
+  ggplot(ts_4) +
+  geom_histogram(aes(x = residuals), color = "grey30", alpha = 0.7, linewidth = 0.3, bins = 50) +
+  labs(x = "", y = "Frequência [%]") +
+    theme_bw() +
+    theme(panel.background = NULL,
+          legend.position =  "none",
+          plot.background = element_rect(color = "white"),
+          panel.border = element_rect(color = "black", fill = NA),
+          text = element_text(family = "mono", size = 10)),
+
+ggplot(ts_4) +
+  stat_boxplot(aes(x = residuals), geom = "errorbar", width = 0.3) +
+  geom_boxplot(aes(x = residuals), linewidth = 0.5, outlier.size = 1, show.legend = FALSE) +
+  labs(x = "(Qobs - Qsim)") +
+  theme_minimal() +
+  theme(plot.background = element_rect(color = "white"),
+        panel.border = element_rect(color = "black", fill = NA),
+        text = element_text(family = "mono", color = "black", size = 10))
+)
+
+wrap_plots(plot_residuals) + plot_layout(heights = c(2, 1))
+
+```
+
+No histograma acima, apesar da aparente normalidade, é possível verificar que temos muitas observações nas caudas, especialmente na cauda esquerda com observações mais distantes.
+
+Podemos fazer uma última análise ainda, avaliando o impacto que algumas observações exercem na estimativa do coeficiente de eficiência. Em seu trabalho, @clark_abuse_2021 fazem uma avaliação do impacto que erros maiores têm na estimativa do coeficiente de Nash-Sutcliff. Os autores, em uma das abordagens de avaliação, ordenam os resíduos e removem aqueles que claramente se diferenciam dos demais para avaliar seu efeito no valor de $\hat{KGE}$.
+
+```{r}
+# Avaliar série de resíduos quadráticos
+residuals_series <- (qobs - qsim)^2
+mse_series <- sum(residuals_series)/length(residuals_series)
+residuals_rank <- sort(residuals_series, decreasing = TRUE)
+residuals_rank[1:10]
+```
+
+Nessa abordagem, os autores avaliam a influência dos 10 maiores resíduos no valor de $\hat{MSE}$ com todas as observações.
+
+```{r}
+k <- 10
+influence_k <- sum(residuals_rank[1:k])/(length(residuals_series)*mse_series)
+```
+
+```{r}
+#| echo: false
+#| label: fig-res-ranked
+#| fig-cap: Resíduos ordenados de forma descrescente.
+
+ggplot(data.frame(residuals_rank)) +
+  geom_bar(stat = "identity", aes(x = seq_along(residuals_rank), y = residuals_rank),
+           fill = "grey50", color = "black", alpha = 0.8, linewidth = 0.2) +
+  labs(x ="Número de observações", y = "Resíduos") +
+  theme_minimal() +
+  theme(legend.position =  "none",
+        plot.background = element_rect(color = "white"),
+        panel.border = element_rect(color = "black", fill = NA),
+        text = element_text(family = "mono", color = "black", size = 8))
+```
+
+Observando a Figuras [-@fig-res-ranked], é possível notar que um grupo pequeno de observação se destaca significativamente das demais e que os `r k` maiores resíduos representam `r paste(round(influence_k*100, 2), "%")` do $\hat{MSE}$ total.
+
+
+## Quantis
+
+```{r}
+#| echo: false
+#| label: fig-curva-permanencia
+#| fig-cap: Curva de permanência das rodadas para o período completo. As curvas `quant_sim_` 1, 2, 3 e 4 representam, respectivamente, as rodadas "HYMOD + NSE", "HYMOD + KGE", "SMAP + NSE" e "SMAP + KGE".
+
+# Preparar dados
+df_vazoes <-
+  tibble(qobs = resultados[[1]]$ts$qobs,
+         qsim_1 = resultados[[1]]$ts$qsim,
+         qsim_2 = resultados[[2]]$ts$qsim,
+         qsim_3 = resultados[[3]]$ts$qsim,
+         qsim_4 = resultados[[4]]$ts$qsim)
+df_vazoes <- na.omit(df_vazoes)
+names_vazoes <- names(df_vazoes)
+
+# Calcular quantis observados
+seq_percentis <- seq(0, 1, 0.01) # sequência de percentis
+df_quantis <- 
+  tibble(probs = seq_percentis,
+         quant_obs = quantile(df_vazoes[[names_vazoes[[1]]]], probs = seq_percentis),
+         quant_sim_1 = quantile(df_vazoes[[names_vazoes[[2]]]], probs = seq_percentis),
+         quant_sim_2 = quantile(df_vazoes[[names_vazoes[[3]]]], probs = seq_percentis),
+         quant_sim_3 = quantile(df_vazoes[[names_vazoes[[4]]]], probs = seq_percentis),
+         quant_sim_4 = quantile(df_vazoes[[names_vazoes[[5]]]], probs = seq_percentis)) %>% 
+  pivot_longer(cols = starts_with("quant_"),
+               values_to = "quantiles",
+               names_to = "which_quant")
+
+# Plotar curva de permanência: quantis vs. percentis
+colors <- c("quant_obs" = "black",
+            "quant_sim_1" = "red4",
+            "quant_sim_2" = "red",
+            "quant_sim_3" = "orange",
+            "quant_sim_4" = "yellow")
+perc_breaks <- c(0, 0.05, 0.10, 0.20, 0.50, 0.80, 0.90, 0.95, 0.99)
+plot_curva_permanencia <-
+  ggplot(data = df_quantis, aes(x = probs, y = quantiles, color = which_quant)) +
+  geom_line() +
+  scale_x_reverse(name = "Porcentagem acima do tempo [%]",
+                  breaks = perc_breaks,
+                  labels = scales::percent) +
+  scale_y_continuous(name = "Vazão [m³/s]", trans = "log10") +
+  scale_color_manual(values = colors) +
+  labs(color = "") +
+  theme_minimal() +
+  theme(panel.background = NULL,
+        legend.position =  "bottom",
+        plot.background = element_rect(color = "white"),
+        panel.border = element_rect(color = "black", fill = NA),
+        text = element_text(family = "mono", size = 10)); plot_curva_permanencia
+
+```
+Percebe-se que a curva de permanência da rodada 4 (SMAP + KGE) é o que mais se aproxima dos quantis empíricos (da série de vazões observadas). Observa-se também que o Hymod é o modelo que mais se afasta dos quantis observados.
+
+Nos últimos anos da série histórica, observou-se um aumento nas vazões mínimas. A escolha do Hymod, por exemplo, acarretaria em subestimativas dessas vazões mínimas.
+
+# Referências
+
+::: {#refs}
+:::
